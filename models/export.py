@@ -31,7 +31,8 @@ if __name__ == '__main__':
     t = time.time()
 
     # Load PyTorch model
-    model = attempt_load(opt.weights, map_location=torch.device('cpu'))  # load FP32 model
+    device = torch.device("cuda:0") if torch.cuda.is_available() else "cpu"
+    model = attempt_load(opt.weights, map_location=device)  # load FP32 model
     labels = model.names
 
     # Checks
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     opt.img_size = [check_img_size(x, gs) for x in opt.img_size]  # verify img_size are gs-multiples
 
     # Input
-    img = torch.zeros(opt.batch_size, 3, *opt.img_size)  # image size(1,3,320,192) iDetection
+    img = torch.zeros(opt.batch_size, 3, *opt.img_size).to(device)  # image size(1,3,320,192) iDetection
 
     # Update model
     for k, m in model.named_modules():
@@ -51,7 +52,7 @@ if __name__ == '__main__':
                 m.act = SiLU()
         # elif isinstance(m, models.yolo.Detect):
         #     m.forward = m.forward_export  # assign forward (optional)
-    model.model[-1].export = True  # set Detect() layer export=True
+    model.model[-1].export = False  # set Detect() layer export=True
     y = model(img)  # dry run
 
     # TorchScript export
